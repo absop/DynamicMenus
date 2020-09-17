@@ -7,6 +7,7 @@ import sublime
 class Loger:
     debug = False
     employer = "DynamicMenus"
+    done_msg = ""
 
     def print(*args):
         if Loger.debug:
@@ -21,7 +22,7 @@ class Loger:
                 return path[len(os.path.dirname(folder)):]
         return path
 
-    def threading(function, ing_msg, done_msg, on_done=None):
+    def threading(function, ing_msg, done_msg="", on_done=None):
         def check(last_view, i, d):
             active_view = sublime.active_window().active_view()
             if last_view != active_view:
@@ -29,8 +30,8 @@ class Loger:
 
             if not thread.is_alive():
                 cleanup = active_view.erase_status
-                Loger.print(done_msg)
-                active_view.set_status(Loger.employer, done_msg)
+                Loger.print(Loger.done_msg)
+                active_view.set_status(Loger.employer, Loger.done_msg)
                 sublime.set_timeout(lambda: cleanup(Loger.employer), 2000)
                 if on_done is not None:
                     on_done()
@@ -44,6 +45,7 @@ class Loger:
 
             sublime.set_timeout(lambda: check(active_view, i + d, d), 100)
 
+        Loger.done_msg = done_msg
         Loger.print("Start " + ing_msg)
         thread = threading.Thread(target=function)
         thread.start()

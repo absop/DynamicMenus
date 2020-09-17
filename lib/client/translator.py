@@ -14,6 +14,8 @@ from ..log import Loger
 
 
 class task:
+    succeed_message = "Succeed."
+    failed_message = "Failed!"
     region = None
     words = None
     result = None
@@ -34,8 +36,7 @@ class TranslatorCommand(sublime_plugin.TextCommand):
 
         if action == "translate":
             if self.get_words(view):
-                Loger.threading(self.do_translate,
-                    "Translating...", "Succeed.")
+                Loger.threading(self.do_translate, "Translating...")
             else:
                 sublime.status_message("No words to be translate.")
 
@@ -183,8 +184,10 @@ class YoudaoTranslator(TranslatorCommand):
         try:
             headers = {'Content-Type': 'application/x-www-form-urlencoded'}
             Loger.print("youdao translator: begin requests.post")
+            Loger.done_msg = task.failed_message
             response = requests.post(apiurl,
                 data=data, headers=headers, timeout=(1, 5))
+            Loger.done_msg = task.succeed_message
             Loger.print("youdao translator: end requests.post")
             resdict = json.loads(response.content.decode('utf-8'))
         except requests.exceptions.ConnectionError:
