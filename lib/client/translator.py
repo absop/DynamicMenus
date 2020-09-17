@@ -111,7 +111,7 @@ class TranslatorCommand(sublime_plugin.TextCommand):
     def handle_href(self, href):
         self.view.run_command(self.name(), {"action": href})
 
-    def display(self, words, received):
+    def display(self, words, resdict):
         pops = {
             "popup": self.show_popup,
             "phantom": self.show_phantom,
@@ -119,15 +119,15 @@ class TranslatorCommand(sublime_plugin.TextCommand):
 
         if self.style in pops:
             show = pops[self.style]
-            show(task.region, self.gen_markdown_text(words, received))
+            show(task.region, self.gen_markdown_text(words, resdict))
 
         elif self.style == "view":
-            self.show_view(sublime.encode_value(received, pretty=True))
+            self.show_view(sublime.encode_value(resdict, pretty=True))
 
     def do_translate(self):
         pass
 
-    def gen_markdown_text(self, words, received):
+    def gen_markdown_text(self, words, resdict):
         return ""
 
 
@@ -182,35 +182,40 @@ class YoudaoTranslator(TranslatorCommand):
 
         try:
             headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+            Loger.print("youdao translator: begin requests.post")
             response = requests.post(apiurl,
-                data=data, headers=headers, timeout=5)
-            received = json.loads(response.content.decode('utf-8'))
-        except Exception as e:
-            Loger.error(e)
-            # Loger.error(u"数据请求失败！")
+                data=data, headers=headers, timeout=(1, 5))
+            Loger.print("youdao translator: end requests.post")
+            resdict = json.loads(response.content.decode('utf-8'))
+        except requests.exceptions.ConnectionError:
+            Loger.error(u"连接失败，请检查你的网络状态")
+        except requests.exceptions.ConnectTimeout:
+            Loger.error(u"连接超时，请检查你的网络状态")
+        except Exception:
+            Loger.error(u"数据请求失败！")
         else:
-            self.display(q, received)
+            self.display(q, resdict)
 
     # TODO: Use jieba to extract words, and then
     # combine those words as a sentence in proper
     # length, with considering the width of char.
-    def gen_markdown_text(self, words, received):
-        thread = "\n------------------------\n{}"
+    def gen_markdown_text(self, words, resdict):
+        line = "\n------------------------\n{}"
         body = TRANSLATOR_TEMPLATE.format("Youdao")
         footer = """<div class="footer">"""
 
         body += "## 原文：\n"
         body += words + "\n"
 
-        if "basic" in received and received["basic"]:
+        if "basic" in resdict and resdict["basic"]:
             body += "## 解释：\n"
-            for explain in received["basic"]["explains"]:
+            for explain in resdict["basic"]["explains"]:
                 body += "- {}\n".format(explain)
 
-        if "translation" in received:
+        if "translation" in resdict:
             body += "## 翻译：\n"
             explains = []
-            for explain in received["translation"]:
+            for explain in resdict["translation"]:
                 explains.append(explain)
                 explain = "\n".join([
                     explain[i:i+24]
@@ -220,14 +225,14 @@ class YoudaoTranslator(TranslatorCommand):
             task.result = "\n".join(explains)
             body += COPY_INSERT_REPLACE
 
-        if "web" in received:
-            body += thread.format("## 网络释义:\n")
-            for explain in received["web"]:
+        if "web" in resdict:
+            body += line.format("## 网络释义:\n")
+            for explain in resdict["web"]:
                 explains = ",".join(explain["value"])
                 body += "`{}`: {}\n".format(explain["key"], explains)
         footer += """<span class="hide"><a href=hide>×</a></span></div>"""
 
-        return body + thread.format(footer)
+        return body + line.format(footer)
 
 
 class GoogleTranslator(TranslatorCommand):

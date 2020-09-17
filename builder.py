@@ -104,7 +104,7 @@ class DynamicMenusEventListener(sublime_plugin.EventListener):
 
 
     # Just for reloading this plugin.
-    """
+    # """
     def on_post_save(self, view):
         path = view.file_name()
         dir = os.path.dirname(__file__)
@@ -118,4 +118,4 @@ class DynamicMenusEventListener(sublime_plugin.EventListener):
             sublime_plugin.reload_plugin(modulename)
             sublime_plugin.reload_plugin(
                 "{}.builder".format(__package__))
-    """
+    # """
